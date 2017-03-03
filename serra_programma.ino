@@ -1,7 +1,6 @@
 #include <Time.h>
 #include <TimeLib.h>
 #include <NewPing.h>
-#include <ESP8266WiFi.h>
 
 //igrometri
 int igro1_1 = A0; 
