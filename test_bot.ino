@@ -7,10 +7,10 @@
 
 
 // Initialize Wifi connection to the router
-char ssid[] = "xxxx";     // your network SSID (name)
-char password[] = "xxxx"; // your network key
+char ssid[] = "G3 di Ninotz";     // your network SSID (name)
+char password[] = "chitarra"; // your network key
 
-#define BOTtoken "xxxx"
+#define BOTtoken "330278087:AAGI9xAt1E5sehRy0lT70ul8Mky3VEqQU-w"
 
 int Bot_mtbs = 1000; //mean time between scan messages
 long Bot_lasttime;   //last time messages' scan has been done
@@ -52,13 +52,21 @@ void loop() {
     while(numNewMessages) {
       Serial.println("got response");
       for (int i=0; i<numNewMessages; i++) {
-        bot.sendMessage(bot.messages[i].chat_id, "testo, "");
+        if (bot.messages[i].text == "\sensori"){
+          bot.sendMessage(bot.messages[i].chat_id, "Livello acqua: 60% \n Umidità media: 20% \n Temperatura media: 25C", "");
+        }
+        else if (bot.messages[i].text == "\acqua"){
+          bot.sendMessage(bot.messages[i].chat_id, "Livello acqua: 60%", "");
+        }
+        else{
+          bot.sendMessage(bot.messages[i].chat_id, "Spiacente, non posso risponderti", "");
+        }
+        
       }
       numNewMessages = bot.getUpdates(bot.last_message_received + 1);
     }
 
     Bot_lasttime = millis();
   } 
-  // bot.sendMessage("id", "testo", ""); 
 
 }
