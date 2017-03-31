@@ -15,8 +15,8 @@
 
 SoftwareSerial EspSerial(3, 2); // RX dell'esp8266, TX dell'esp8266
 char auth[] = "2dfb30515e074218b30ed47244183c3a";
-char ssid[] = "La Grotteria - Maina Network";
-char pass[] = "Giapi@0123456789";
+char ssid[] = "ssid";
+char pass[] = "password";
 
 ESP8266 wifi(&EspSerial);
 
@@ -183,4 +183,5 @@ void bagna(int media, int pompa){
     digitalWrite(pompa, LOW);
     Serial.println("Ho bagnato"); 
   }
+}
 }
