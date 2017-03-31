@@ -4,7 +4,7 @@
 #include <WiFiServer.h>
 #include <WiFiUdp.h>
 #include <UniversalTelegramBot.h>
-
+#include <Wire.h>
 
 // Initialize Wifi connection to the router
 char ssid[] = "G3 di Ninotz";     // your network SSID (name)
