@@ -5,6 +5,22 @@
 #include <TimeLib.h>
 #include <NewPing.h>
 
+// Blynk
+#include <ESP8266_Lib.h>
+#include <BlynkSimpleShieldEsp8266.h>
+#include <SoftwareSerial.h>
+
+#define BLYNK_PRINT Serial // Comment this out to disable prints and save space
+#define ESP8266_BAUD 9600
+
+SoftwareSerial EspSerial(3, 2); // RX, TX
+char auth[] = "2dfb30515e074218b30ed47244183c3a";
+char ssid[] = "La Grotteria - Maina Network";
+char pass[] = "Giapi@0123456789";
+
+ESP8266 wifi(&EspSerial);
+
+
 //igrometri
 int igro1_1 = A0; 
 int igro1_2 = A3;
@@ -53,7 +69,6 @@ void setup() {
   Serial.begin(9600);
   sensors.begin();
 
-
   // pompe
   pinMode(pompa1, OUTPUT);
   pinMode(pompa2, OUTPUT);
@@ -62,21 +77,26 @@ void setup() {
   pinMode(vent_parte_1, OUTPUT);
   pinMode(vent_parte_2, OUTPUT);
 
-
   //led
   pinMode(led, OUTPUT);
 
-  
   // temperatura: set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
   sensors.setResolution(Thermometer_1, 9);
   sensors.setResolution(Thermometer_2, 9);
+
+  delay(10);
+  // Set ESP8266 baud rate
+  EspSerial.begin(ESP8266_BAUD);
+  delay(10);
+
+  Blynk.begin(auth, wifi, ssid, pass);
 
 
 }
 
 void loop() {
-  //inizializza messaggio da mandare
-  String messaggio;
+
+  Blynk.run();
   
   //delay per sensore ultrasuoni
   delay(500);
@@ -104,20 +124,22 @@ void loop() {
   Serial.println("temperatura sensore 1: " + String(temp_1));
   Serial.println("temperatura sensore 2: " + String(temp_2));
   Serial.println();
-
+  Blynk.vitualWrite(V0, temp_1);
+  Blynk.vitualWrite(V1, temp_2);
  
 
-  if(temp_1 > 20){
+  if(temp_1 > 30){
     digitalWrite(vent_parte_1, HIGH);
-    delay(5000);
+  } else if(temp_1 < 30){
     digitalWrite(vent_parte_1, LOW);
   }
 
-  if(temp_2 > 20){
+  if(temp_2 > 30){
     digitalWrite(vent_parte_2, HIGH);
-    delay(5000);
+  } else if(temp_2 < 30){
     digitalWrite(vent_parte_2, LOW);
   }
+
 
   //ora
   time_t tempo = now();
@@ -131,7 +153,7 @@ void loop() {
     digitalWrite(led, LOW);
   } */
 
-  digitalWrite(led, HIGH);
+  // digitalWrite(led, HIGH); //Accensione led aggiunta su Blynk
   
 
   // sensore ultrasuoni e WiFi
@@ -140,18 +162,17 @@ void loop() {
   Serial.println("Distanza: ");
   Serial.print(distanza);
   Serial.println("cm");
+  Blynk.virtualWrite(V2, distanza);
   
   if(distanza >= 25){
-    // Messaggio all' ESP8266 che invia la notifica di acqua in esaurimento
+    Blynk.notify("Acqua in esaurimento");
     full = true;
   } else if(distanza >= 32) {
-    //messaggio acqua finita
+    Blynk.notify("Acqua finita!!");
     full = false;
   } else{
-    // Messaggio all' ESP8266 che invia la notifica
     full = true;
   }
-  // aggiungere notificatore
 }
 
 void bagna(int media, int pompa){
