@@ -11,9 +11,9 @@
 #include <SoftwareSerial.h>
 
 #define BLYNK_PRINT Serial // Comment this out to disable prints and save space
-#define ESP8266_BAUD 9600
+#define ESP8266_BAUD 9600 //non cambiare
 
-SoftwareSerial EspSerial(3, 2); // RX, TX
+SoftwareSerial EspSerial(3, 2); // RX dell'esp8266, TX dell'esp8266
 char auth[] = "2dfb30515e074218b30ed47244183c3a";
 char ssid[] = "La Grotteria - Maina Network";
 char pass[] = "Giapi@0123456789";
