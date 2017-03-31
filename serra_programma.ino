@@ -181,7 +181,4 @@ void bagna(int media, int pompa){
     digitalWrite(pompa, HIGH);
     delay(2500);
     digitalWrite(pompa, LOW);
-    Serial.println("Ho bagnato"); 
-  }
-}
-}
+    Serial.println("Ho bagnato")
