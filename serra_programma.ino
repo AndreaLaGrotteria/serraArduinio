@@ -1,8 +1,10 @@
+#define BLYNK_PRINT Serial
+#define BLYNK_DEBUG
+
+#include <SimpleTimer.h>
 #include <Wire.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
-#include <Time.h>
-#include <TimeLib.h>
 #include <NewPing.h>
 
 // Blynk
@@ -10,161 +12,222 @@
 #include <BlynkSimpleShieldEsp8266.h>
 #include <SoftwareSerial.h>
 
-#define BLYNK_PRINT Serial // Comment this out to disable prints and save space
-#define ESP8266_BAUD 9600 //non cambiare
+#include <TimeLib.h>
+#include <WidgetRTC.h>
 
-SoftwareSerial EspSerial(3, 2); // RX dell'esp8266, TX dell'esp8266
-char auth[] = "2dfb30515e074218b30ed47244183c3a";
-char ssid[] = "ssid";
-char pass[] = "password";
+#define ESP8266_BAUD 9600 //cambia in base al modello di esp8266 usato
+
+SoftwareSerial EspSerial(2, 3); // RX dell'esp8266, TX dell'esp8266
+byte auth[] = "token";
+byte ssid[] = "ssid";
+byte pass[] = "password";
 
 ESP8266 wifi(&EspSerial);
 
-
 //igrometri
-int igro1_1 = A0; 
-int igro1_2 = A3;
-int igro1_3 = A2;
-int igro1_4 = A1;
+const byte igro1_1; //aggiungere pin
+const byte igro1_2; //aggiungere pin
+const byte igro2_1; //aggiungere pin
+const byte igro2_2; //aggiungere pin
 int var1_1;
 int var1_2;
 int var2_1;
 int var2_2;
 int var_med_1;
 int var_med_2;
-const int secco = 200;
-const int normale = 400;
-const int umido = 600;
+int climaTerreno_1 = 200; //modificare in base al tipo di terreno
+int climaTerreno_2 = 200;
 
 // ultrasonic module
-const int trigger_pin = 10; 
-const int echo_pin = 11;
+const byte trigger_pin; //aggiungere pin
+const byte echo_pin;    //aggiungere pin
 const int max_distance = 40;
 int distanza = 0;
-NewPing sonar(trigger_pin, echo_pin, max_distance); 
+int perc_acqua = 0;
+NewPing sonar(trigger_pin, echo_pin, max_distance);
 
 // temperatura
-const int sens_temp = 6 ; 
-OneWire oneWire(sens_temp);  
+//sensori di temperatura ds18b20
+const byte sens_temp;  //aggiungere pin
+OneWire oneWire(sens_temp);
 DallasTemperature sensors(&oneWire);
-DeviceAddress Thermometer_1 = {0x28, 0xFF, 0x98, 0xB0, 0xA1, 0x15, 0x04, 0x7F}; //aggiungere indirizzo
-DeviceAddress Thermometer_2 = {0x28, 0xFF, 0x45, 0x5B, 0x91, 0x15, 0x01, 0xF1};
+DeviceAddress Thermometer_1; //aggiungere indirizzo termometro, da determinare con libreria oneWire
+DeviceAddress Thermometer_2;
 float temp_1;
 float temp_2;
 
 //pompe
-int pompa1 = 3;
-int pompa2 = 5;
-bool full = true;
+const byte pompa_1; //aggiungere pin
+const byte pompa_2; //aggiungere pin
+bool full = true; //per interrempere erogazione dell'acqua in caso l'acqua sia esaurita
 
 //led
-const int led = 4;
+const byte led; //aggiungere pin
 
 //ventole
-const int vent_parte_1 = 8;
-const int vent_parte_2 = 9;
+const byte ventola_1; //aggiungere pin
+const byte ventola_2; //aggiungere pin
+int climaAria_1 = 26; //temperaitura di attivazione ventola ambiente 1
+int climaAria_2 = 26; //temperaitura di attivazione ventola ambiente 2
+
+//timer
+SimpleTimer timer;
+
+//RTC
+WidgetRTC rtc;
+
+//menù blynk
+//Ambiente 1
+BLYNK_WRITE(V0) {
+  switch (param.asInt())
+  {
+    case 1: // Item 1
+      Serial.println("Clima caldo selezionato - ambiente 1");
+      climaAria_1 = 35;
+      climaTerreno_1 = 100;
+      break;
+    case 2: // Item 2
+      Serial.println("Clima temperato selezionato - ambiente 1");
+      climaAria_1 = 26;
+      climaTerreno_1 = 200;
+      break;
+    case 3: // Item 3
+      Serial.println("Clima freddo selezionato - ambeiente 1");
+      climaAria_1 = 17;
+      climaTerreno_1 = 300;
+      break;
+    default:
+      Serial.println("Errore con la selezione del clima - ambiente 1");
+  }
+}
+
+BLYNK_WRITE(V1) {
+  switch (param.asInt())
+  {
+    case 1: // Item 1
+      Serial.println("Clima caldo selezionato - ambiente 2");
+      climaAria_2 = 35;
+      climaTerreno_2 = 100;
+      break;
+    case 2: // Item 2
+      Serial.println("Clima temperato selezionato - ambiente 2");
+      climaAria_2 = 26;
+      climaTerreno_2 = 200;
+      break;
+    case 3: // Item 3
+      Serial.println("Clima freddo selezionato - ambeiente 2");
+      climaAria_2 = 17;
+      climaTerreno_2 = 300;
+      break;
+    default:
+      Serial.println("Errore con la selezione del clima - ambiente 2");
+  }
+}
 
 
 void setup() {
   Serial.begin(9600);
+
+  delay(100);
+
+  //ESP8266
+  EspSerial.begin(ESP8266_BAUD);
+  delay(100);
+  Blynk.begin(auth, wifi, ssid, pass);
+
+  //Real time clock
+  rtc.begin();
+
+  // Inizializzazione timer
+  timer.setInterval(10000, core);
+
+  //Inizializzazione sensori di temperatura
   sensors.begin();
 
   // pompe
-  pinMode(pompa1, OUTPUT);
-  pinMode(pompa2, OUTPUT);
+  pinMode(pompa_1, OUTPUT);
+  pinMode(pompa_2, OUTPUT);
 
   //ventole
-  pinMode(vent_parte_1, OUTPUT);
-  pinMode(vent_parte_2, OUTPUT);
+  pinMode(ventola_1, OUTPUT);
+  pinMode(ventola_2, OUTPUT);
 
   //led
   pinMode(led, OUTPUT);
 
-  // temperatura: set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
-  sensors.setResolution(Thermometer_1, 9);
-  sensors.setResolution(Thermometer_2, 9);
-
-  delay(10);
-  // Set ESP8266 baud rate
-  EspSerial.begin(ESP8266_BAUD);
-  delay(10);
-
-  Blynk.begin(auth, wifi, ssid, pass);
-
+  Serial.println("Boot OK");
 
 }
 
 void loop() {
+  //Non aggiungere codice qui, gestire il resto del programma utilizzando un timer
 
-  Blynk.run();
-  
-  //delay per sensore ultrasuoni
-  delay(500);
+  Blynk.run(); // Initiates Blynk
+  timer.run(); // Initiates SimpleTimer
+}
 
-  //LETTURA DATI
+
+
+void core(){
+
   // Lettura porte analogiche per igrometri
   var1_1 = analogRead(igro1_1);
   var1_2 = analogRead(igro1_2);
-  var_med_1 = (var1_1 + var1_2)/2;
-  Serial.print("Var med 1: ");
-  Serial.println(var_med_1);
-  bagna(var_med_1, pompa1);
-  
-  var2_1 = analogRead(igro1_3);
-  var2_2 = analogRead(igro1_4);
-  var_med_2 = (var2_1 + var2_2)/2;
-  Serial.print("Var med 2: ");
-  Serial.println(var_med_2);
-  bagna(var_med_2, pompa2);
+  if((var1_1 > 0) && (var1_2 > 0)){
+    var_med_1 = (var1_1 + var1_2)/2;
+    Serial.print("Var med 1: ");
+    Serial.println(var_med_1);
+    bagna(var_med_1, pompa_1, climaTerreno_1);
+  } else{
+    Serial.println("Errore igrometri area 1");
+  }
+
+  var2_1 = analogRead(igro2_1);
+  var2_2 = analogRead(igro2_2);
+  if((var2_1 > 0) && (var2_2 > 0)){
+    var_med_2 = (var2_1 + var2_2)/2;
+    Serial.print("Var med 2: ");
+    Serial.println(var_med_2);
+    bagna(var_med_2, pompa_2, climaTerreno_2);
+  } else{
+    Serial.println("Errore igrometri area 2");
+  }
 
   //temperatura
-  sensors.requestTemperatures(); // Send the command to get temperatures
+  sensors.requestTemperatures(); // richiede la temperatura
   temp_1 = sensors.getTempC(Thermometer_1);
   temp_2 = sensors.getTempC(Thermometer_2);
-  Serial.println("temperatura sensore 1: " + String(temp_1));
+  /* Serial.println("temperatura sensore 1: " + String(temp_1));
   Serial.println("temperatura sensore 2: " + String(temp_2));
-  Serial.println();
-  Blynk.vitualWrite(V0, temp_1);
-  Blynk.vitualWrite(V1, temp_2);
- 
+  Serial.println(); */
+  Blynk.virtualWrite(V4, temp_1); //modificare valore pin virtuale in base alle esigenze
+  Blynk.virtualWrite(V5, temp_2);
 
-  if(temp_1 > 30){
-    digitalWrite(vent_parte_1, HIGH);
-  } else if(temp_1 < 30){
-    digitalWrite(vent_parte_1, LOW);
+  //ventole
+  if(temp_1 > climaAria_1){
+    digitalWrite(ventola_1, HIGH);
+  } else if(temp_1 < climaAria_1){
+    digitalWrite(ventola_1, LOW);
   }
 
-  if(temp_2 > 30){
-    digitalWrite(vent_parte_2, HIGH);
-  } else if(temp_2 < 30){
-    digitalWrite(vent_parte_2, LOW);
+  if(temp_2 > climaAria_2){
+    digitalWrite(ventola_2, HIGH);
+  } else if(temp_2 < climaAria_2){
+    digitalWrite(ventola_2, LOW);
   }
-
-
-  //ora
-  time_t tempo = now();
-  int ora = hour(tempo); //controllare
-  
-  
-  //led
-  /*if((ora > 7) && (ora < 19)){
-    digitalWrite(led, HIGH);
-  } else{
-    digitalWrite(led, LOW);
-  } */
-
-  // digitalWrite(led, HIGH); //Accensione led aggiunta su Blynk
-  
 
   // sensore ultrasuoni e WiFi
   unsigned int uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
   distanza = uS / US_ROUNDTRIP_CM; // sono cm
-  Serial.println("Distanza: ");
+  Serial.print("Distanza: ");
   Serial.print(distanza);
   Serial.println("cm");
-  Blynk.virtualWrite(V2, distanza);
-  
-  if(distanza >= 25){
+  //conversione per widget livello dell'acqua blynk
+  perc_acqua = ((40 - distanza)*1023)/40;
+  Blynk.virtualWrite(V3, perc_acqua); //cambiare virtual pin in base alle esigenze
+
+  //modificare i parameteri in base all'altezza del serbatoio dell'acqua
+  if((distanza >= 25) && (distanza < 32)){
     Blynk.notify("Acqua in esaurimento");
     full = true;
   } else if(distanza >= 32) {
@@ -173,12 +236,24 @@ void loop() {
   } else{
     full = true;
   }
+
+
+  //led - controllati tramite relay
+  if((hour() > 8) && (hour() < 20)){
+    digitalWrite(led, LOW);
+  } else{
+    digitalWrite(led, HIGH);
+  }
+
 }
 
-void bagna(int media, int pompa){
+void bagna(int media, int pompa, int secco){
   if((media <= secco) && (full == true)){
     Serial.println("Sto bagnando");
-    digitalWrite(pompa, HIGH);
-    delay(2500);
     digitalWrite(pompa, LOW);
-    Serial.println("Ho bagnato")
+    delay(1500);
+    digitalWrite(pompa, HIGH);
+    Serial.println("Ho bagnato");
+    delay(1500);
+  }
+}

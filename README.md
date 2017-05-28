@@ -1,3 +1,3 @@
-Progetto serra automatizzata con Arduino, in collaborazione con il liceo scientifico di Pinero "Marie Curie".
-La repo contiene il programma finale e alcuni sketch di test dei sensori.
-Userà un NodeMCU 1.0 per la comunicazione internet e un Arduino Mega per la rilevazione dei dati dei sensori sensori.
+﻿Serra progettata per fare crescere in modo autonomo ed efficiente le piante, grazie a diversi sensori. Grazie alla connettività Internet è inoltre possibile notificare all'utente l’esaurimento dell’acqua e conoscere i valori dei sensori interni.
+ La repo contiene il programma finale.
+ Utilizzati Arduino Uno, ESP8266 in modalità shield per la connettività internet e la piattaforma Blynk per la parte internet.
