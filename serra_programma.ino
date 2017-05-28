@@ -14,9 +14,9 @@
 #define ESP8266_BAUD 9600 //non cambiare
 
 SoftwareSerial EspSerial(3, 2); // RX dell'esp8266, TX dell'esp8266
-char auth[] = "2dfb30515e074218b30ed47244183c3a";
-char ssid[] = "ssid";
-char pass[] = "password";
+char auth[] = "ae96beab3ccc4bd8bf5e305ba337d0d5"; // Account Facebook Mattia
+char ssid[] = "toolbox";
+char pass[] = "Toolbox.Torino";
 
 ESP8266 wifi(&EspSerial);
 
@@ -24,8 +24,8 @@ ESP8266 wifi(&EspSerial);
 //igrometri
 int igro1_1 = A0; 
 int igro1_2 = A3;
-int igro1_3 = A2;
-int igro1_4 = A1;
+int igro2_1 = A2;
+int igro2_2 = A1;
 int var1_1;
 int var1_2;
 int var2_1;
@@ -53,8 +53,8 @@ float temp_1;
 float temp_2;
 
 //pompe
-int pompa1 = 3;
-int pompa2 = 5;
+int pompa1 = 5;
+int pompa2 = 3;
 bool full = true;
 
 //led
@@ -130,13 +130,13 @@ void loop() {
 
   if(temp_1 > 30){
     digitalWrite(vent_parte_1, HIGH);
-  } else if(temp_1 < 30){
+  } else if(temp_1 <= 30){
     digitalWrite(vent_parte_1, LOW);
   }
 
   if(temp_2 > 30){
     digitalWrite(vent_parte_2, HIGH);
-  } else if(temp_2 < 30){
+  } else if(temp_2 <= 30){
     digitalWrite(vent_parte_2, LOW);
   }
 
@@ -156,7 +156,7 @@ void loop() {
   // digitalWrite(led, HIGH); //Accensione led aggiunta su Blynk
   
 
-  // sensore ultrasuoni e WiFi
+  // sensore ultrasuoni
   unsigned int uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
   distanza = uS / US_ROUNDTRIP_CM; // sono cm
   Serial.println("Distanza: ");
@@ -179,6 +179,10 @@ void bagna(int media, int pompa){
   if((media <= secco) && (full == true)){
     Serial.println("Sto bagnando");
     digitalWrite(pompa, HIGH);
-    delay(2500);
+    delay(6000);
     digitalWrite(pompa, LOW);
     Serial.println("Ho bagnato")
+  } else {
+    Serial.println("Terreno ancora umido");
+  }
+}
